@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { ParticleGlobe } from "@/components/security/ParticleGlobe";
+import type { GlobeRouteHover } from "@/components/security/ParticleGlobe";
+import { RouteHoverPopover } from "@/components/security/RouteHoverPopover";
 import { SecurityGlobalNav } from "@/components/security/SecurityGlobalNav";
 import { useRainCursor } from "@/components/security/useRainCursor";
 import type { RiskLevel, SecurityOverview } from "@/lib/security-data";
@@ -48,6 +50,7 @@ export function SituationVisualization({
   initialView = "3d",
 }: SituationVisualizationProps) {
   const [view, setView] = useState<ViewMode>(initialView);
+  const [routeHover, setRouteHover] = useState<GlobeRouteHover | null>(null);
   const { cursorRef } = useRainCursor();
   const status = source === "api" && !error ? "LIVE" : "SAMPLE";
 
@@ -82,9 +85,15 @@ export function SituationVisualization({
 
       <section className="situation-stage" data-view={view} aria-label={view === "3d" ? "3D 攻击态势" : "2D 请求分布"}>
         <div className="situation-globe-stage">
-          <ParticleGlobe points={overview.globePoints} projection={view === "2d" ? "map" : "globe"} controls />
+          <ParticleGlobe
+            points={overview.globePoints}
+            projection={view === "2d" ? "map" : "globe"}
+            controls
+            onRouteHover={setRouteHover}
+          />
         </div>
       </section>
+      <RouteHoverPopover hover={routeHover} layout="situation" />
 
       <aside className="situation-region-panel" aria-label="安全态势信息">
         <div className="situation-panel-section">

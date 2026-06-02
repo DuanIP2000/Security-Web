@@ -80,6 +80,14 @@ export type GlobePoint = {
   riskLevel: RiskLevel;
   eventType: string;
   locationPrecision: LocationPrecision;
+  action?: SecurityEvent["action"];
+  method?: SecurityEvent["method"];
+  path?: string;
+  statusCode?: number;
+  rayId?: string;
+  asn?: string;
+  ruleName?: string;
+  throughputMb?: number;
 };
 
 export type PermissionCheck = {
@@ -503,6 +511,19 @@ export function createSampleSecurityData(now = new Date()): SecuritySampleData {
       riskLevel: event.riskLevel,
       eventType: event.eventType,
       locationPrecision: event.locationPrecision,
+      action: event.action,
+      method: event.method,
+      path: event.path,
+      statusCode: event.statusCode,
+      rayId: event.rayId,
+      asn: event.asn,
+      ruleName: event.ruleName,
+      throughputMb: Number(
+        (
+          Math.max(6, (topIps[index]?.value ?? Math.max(8, 34 - index * 3)) * 0.46) +
+          riskOrder.indexOf(event.riskLevel) * 1.8
+        ).toFixed(1),
+      ),
     })),
     sync: {
       status: "sample",

@@ -1,0 +1,117 @@
+"use client";
+
+import type { CSSProperties } from "react";
+import type { GlobeRouteHover } from "@/components/security/ParticleGlobe";
+
+type RouteHoverLayout = "home" | "situation";
+
+type RouteHoverPopoverProps = {
+  hover: GlobeRouteHover | null;
+  layout?: RouteHoverLayout;
+};
+
+const POPOVER_WIDTH = 264;
+const POPOVER_HEIGHT = 188;
+const EDGE_GUTTER = 18;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function clampCss(min: number, preferred: number, max: number) {
+  return clamp(preferred, min, Math.max(min, max));
+}
+
+function homeRailStart(width: number, height: number) {
+  if (width <= 900) {
+    return width;
+  }
+
+  if (width <= 1180) {
+    return clamp(width * 0.67, 720, 860);
+  }
+
+  if (width >= 2200 && height >= 1180) {
+    return width * 0.65;
+  }
+
+  return Math.max(980, width * 0.65);
+}
+
+function situationPanelStart(width: number) {
+  if (width <= 1180) {
+    return width;
+  }
+
+  const rightInset = clamp(width * 0.05, 34, 92);
+  const panelWidth = Math.max(258, Math.min(310, width * 0.18));
+  return width - rightInset - panelWidth - 18;
+}
+
+function routePopoverStyle(hover: GlobeRouteHover, layout: RouteHoverLayout) {
+  if (typeof window === "undefined") {
+    return {
+      left: hover.x + 22,
+      top: hover.y - 88,
+      placement: "right" as const,
+    };
+  }
+
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const avoidRight =
+    layout === "home" ? homeRailStart(viewportWidth, viewportHeight) : situationPanelStart(viewportWidth);
+  const absoluteMaxLeft = viewportWidth - POPOVER_WIDTH - EDGE_GUTTER;
+  const safeMaxLeft = Math.min(absoluteMaxLeft, avoidRight - POPOVER_WIDTH - 24);
+  const preferredRight = hover.x + 22;
+  const preferredLeft = hover.x - POPOVER_WIDTH - 26;
+  const shouldFlip = preferredRight > safeMaxLeft;
+  const left = clampCss(EDGE_GUTTER, shouldFlip ? preferredLeft : preferredRight, safeMaxLeft);
+  const top = clampCss(26, hover.y - 88, viewportHeight - POPOVER_HEIGHT - 26);
+
+  return {
+    left,
+    top,
+    placement: shouldFlip ? ("left" as const) : ("right" as const),
+  };
+}
+
+export function RouteHoverPopover({ hover, layout = "home" }: RouteHoverPopoverProps) {
+  if (!hover) {
+    return null;
+  }
+
+  const { left, top, placement } = routePopoverStyle(hover, layout);
+  const hoverThroughput = hover.point.throughputMb
+    ? `${hover.point.throughputMb.toFixed(1)} MB`
+    : `${Math.max(1, Math.round(hover.point.count * 0.42))} MB`;
+  const hoverRouteLabel = `${hover.point.city || hover.point.country || hover.point.clientIp} -> Chengdu`;
+
+  return (
+    <div
+      className="rain-route-popover"
+      data-risk={hover.point.riskLevel}
+      data-placement={placement}
+      data-layout={layout}
+      style={{ left: `${left}px`, top: `${top}px` } as CSSProperties}
+    >
+      <div className="rain-route-popover-inner">
+        <span className="rain-route-kicker">{hover.kind === "flight" ? "ROUTE TRACE" : "SOURCE TRACE"}</span>
+        <strong>{hoverRouteLabel}</strong>
+        <div className="rain-route-meta">
+          <span>RISK</span>
+          <b>{hover.point.riskLevel.toUpperCase()}</b>
+          <span>ACTION</span>
+          <b>{hover.point.action?.toUpperCase() ?? "LOG"}</b>
+          <span>REQ</span>
+          <b>
+            {hover.point.method ?? "GET"} / {hover.point.statusCode ?? "-"}
+          </b>
+          <span>FLOW</span>
+          <b>{hoverThroughput}</b>
+        </div>
+        <p>{hover.point.path ?? hover.point.eventType}</p>
+      </div>
+    </div>
+  );
+}

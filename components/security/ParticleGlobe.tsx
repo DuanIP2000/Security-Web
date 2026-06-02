@@ -6,10 +6,18 @@ import type { GlobePoint, RiskLevel } from "@/lib/security-data";
 
 type ProjectionMode = "globe" | "map";
 
+export type GlobeRouteHover = {
+  point: GlobePoint;
+  x: number;
+  y: number;
+  kind: "flight" | "source";
+};
+
 type ParticleGlobeProps = {
   points: GlobePoint[];
   projection?: ProjectionMode;
   controls?: boolean;
+  onRouteHover?: (hover: GlobeRouteHover | null) => void;
 };
 
 type Coordinate = [number, number];
@@ -606,14 +614,19 @@ function disposeObject(object: THREE.Object3D) {
   });
 }
 
-export function ParticleGlobe({ points, projection = "globe", controls = false }: ParticleGlobeProps) {
+export function ParticleGlobe({ points, projection = "globe", controls = false, onRouteHover }: ParticleGlobeProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const projectionRef = useRef<ProjectionMode>(projection);
+  const routeHoverRef = useRef(onRouteHover);
   const zoomApiRef = useRef<ZoomApi | null>(null);
 
   useEffect(() => {
     projectionRef.current = projection;
   }, [projection]);
+
+  useEffect(() => {
+    routeHoverRef.current = onRouteHover;
+  }, [onRouteHover]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -669,16 +682,25 @@ export function ParticleGlobe({ points, projection = "globe", controls = false }
 
     points.slice(0, 18).forEach((point, index) => {
       const marker = createAttackMarker(point, index, particleTexture);
+      marker.particles.userData.hoverPoint = point;
       attackMarkers.push(marker);
       globeGroup.add(marker.particles);
     });
 
-    points.slice(0, 16).forEach((point, index) => {
-      const flight = createAttackFlight(point, index, particleTexture);
-      attackFlights.push(flight);
-      globeGroup.add(flight.beamParticles);
-      globeGroup.add(flight.impact);
-    });
+    points
+      .filter(
+        (point) =>
+          riskWeight[point.riskLevel] >= 2 || ["block", "challenge", "managed_challenge"].includes(point.action ?? ""),
+      )
+      .slice(0, 16)
+      .forEach((point, index) => {
+        const flight = createAttackFlight(point, index, particleTexture);
+        flight.beamParticles.userData.hoverPoint = point;
+        flight.impact.userData.hoverPoint = point;
+        attackFlights.push(flight);
+        globeGroup.add(flight.beamParticles);
+        globeGroup.add(flight.impact);
+      });
 
     fetch("/data/ne-110m-countries.geojson")
       .then((response) => response.json() as Promise<CountryFeatureCollection>)
@@ -719,6 +741,110 @@ export function ParticleGlobe({ points, projection = "globe", controls = false }
     let targetMapOffsetY = 0;
     let mapZoom = 1;
     let targetMapZoom = 1;
+    let hoverKey: string | null = null;
+    let hoverX = -999;
+    let hoverY = -999;
+    const hoverVector = new THREE.Vector3();
+
+    const clearRouteHover = () => {
+      if (!hoverKey) {
+        return;
+      }
+
+      hoverKey = null;
+      routeHoverRef.current?.(null);
+    };
+
+    const emitRouteHover = (point: GlobePoint, kind: GlobeRouteHover["kind"], event: PointerEvent) => {
+      const nextKey = `${kind}:${point.id}`;
+      const movedEnough = Math.abs(event.clientX - hoverX) > 8 || Math.abs(event.clientY - hoverY) > 8;
+
+      if (nextKey === hoverKey && !movedEnough) {
+        return;
+      }
+
+      hoverKey = nextKey;
+      hoverX = event.clientX;
+      hoverY = event.clientY;
+      routeHoverRef.current?.({ point, kind, x: event.clientX, y: event.clientY });
+    };
+
+    const findNearestRouteHover = (event: PointerEvent) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      let nearestPoint: GlobePoint | null = null;
+      let nearestKind: GlobeRouteHover["kind"] = "flight";
+      let nearestDistance = Infinity;
+      const flightThreshold = Math.max(18, Math.min(30, rect.width * 0.024));
+      const sourceThreshold = Math.max(16, Math.min(26, rect.width * 0.018));
+
+      globeGroup.updateMatrixWorld(true);
+
+      const measureWorldPoint = (localX: number, localY: number, localZ: number) => {
+        hoverVector.set(localX, localY, localZ);
+        hoverVector.applyMatrix4(globeGroup.matrixWorld);
+        hoverVector.project(camera);
+
+        if (hoverVector.z < -1 || hoverVector.z > 1) {
+          return Infinity;
+        }
+
+        const screenX = rect.left + (hoverVector.x * 0.5 + 0.5) * rect.width;
+        const screenY = rect.top + (-hoverVector.y * 0.5 + 0.5) * rect.height;
+        return Math.hypot(screenX - event.clientX, screenY - event.clientY);
+      };
+
+      attackFlights.forEach((flight) => {
+        if (!flight.beamParticles.visible) {
+          return;
+        }
+
+        for (let index = 0; index < flight.sampleCount; index += 6) {
+          const offset = index * 3;
+          if (flight.beamPositions[offset] > 900) {
+            continue;
+          }
+
+          const distance = measureWorldPoint(
+            flight.beamPositions[offset],
+            flight.beamPositions[offset + 1],
+            flight.beamPositions[offset + 2],
+          );
+
+          if (distance < nearestDistance) {
+            nearestDistance = distance;
+            nearestPoint = flight.point;
+            nearestKind = "flight";
+          }
+        }
+      });
+
+      if (nearestPoint && nearestDistance <= flightThreshold) {
+        return { point: nearestPoint, kind: nearestKind };
+      }
+
+      attackMarkers.forEach((marker) => {
+        const position = marker.geometry.getAttribute("position") as THREE.BufferAttribute;
+        const array = position.array as Float32Array;
+
+        if (array[0] > 900) {
+          return;
+        }
+
+        const distance = measureWorldPoint(array[0], array[1], array[2]);
+
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestPoint = marker.point;
+          nearestKind = "source";
+        }
+      });
+
+      if (nearestPoint && nearestDistance <= sourceThreshold) {
+        return { point: nearestPoint, kind: nearestKind };
+      }
+
+      return null;
+    };
 
     const applyZoom = (direction: "in" | "out") => {
       const factor = direction === "in" ? 1.18 : 1 / 1.18;
@@ -743,6 +869,8 @@ export function ParticleGlobe({ points, projection = "globe", controls = false }
     };
 
     const onPointerDown = (event: PointerEvent) => {
+      clearRouteHover();
+
       if (projectionRef.current === "map") {
         dragMode = "map";
         dragging = true;
@@ -761,6 +889,14 @@ export function ParticleGlobe({ points, projection = "globe", controls = false }
 
     const onPointerMove = (event: PointerEvent) => {
       if (!dragging) {
+        const hover = findNearestRouteHover(event);
+
+        if (hover) {
+          emitRouteHover(hover.point, hover.kind, event);
+        } else {
+          clearRouteHover();
+        }
+
         return;
       }
 
@@ -799,6 +935,7 @@ export function ParticleGlobe({ points, projection = "globe", controls = false }
     renderer.domElement.addEventListener("pointermove", onPointerMove);
     renderer.domElement.addEventListener("pointerup", onPointerUp);
     renderer.domElement.addEventListener("pointercancel", onPointerUp);
+    renderer.domElement.addEventListener("pointerleave", clearRouteHover);
     renderer.domElement.addEventListener("wheel", onWheel, { passive: false });
 
     const updateAttackMarkers = (elapsed: number, currentProjectionMix: number) => {
@@ -979,6 +1116,7 @@ export function ParticleGlobe({ points, projection = "globe", controls = false }
       renderer.domElement.removeEventListener("pointermove", onPointerMove);
       renderer.domElement.removeEventListener("pointerup", onPointerUp);
       renderer.domElement.removeEventListener("pointercancel", onPointerUp);
+      renderer.domElement.removeEventListener("pointerleave", clearRouteHover);
       renderer.domElement.removeEventListener("wheel", onWheel);
       zoomApiRef.current = null;
       disposeObject(scene);

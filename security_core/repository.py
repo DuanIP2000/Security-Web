@@ -694,6 +694,14 @@ def get_globe_points(limit: int = 50) -> list[dict[str, Any]]:
                 "riskLevel": latest.get("riskLevel", "info"),
                 "eventType": latest.get("eventType", "正常访问"),
                 "locationPrecision": row["location_precision"],
+                "action": latest.get("action"),
+                "method": latest.get("method"),
+                "path": latest.get("path"),
+                "statusCode": latest.get("statusCode"),
+                "rayId": latest.get("rayId"),
+                "asn": latest.get("asn"),
+                "ruleName": latest.get("ruleName"),
+                "throughputMb": round(max(4, int(row["count"]) * 0.42), 1),
             }
         )
     return points

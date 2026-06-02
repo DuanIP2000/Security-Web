@@ -19,3 +19,6 @@ security_data/
 .env.*
 !.env.example
 security-*.png
+homepage-*.png
+rainmorime-*.png
+.tmp-*
