@@ -104,7 +104,7 @@ const pageCopy = {
   },
   settings: {
     eyebrow: "SECURITY / CONTROL ROOM",
-    title: "Security Config",
+    title: "安全设置",
     subtitle: "配置 Cloudflare 只读接入、同步周期、提醒阈值与本地数据保留策略。",
     active: "settings" as const,
     index: "03",
@@ -502,81 +502,88 @@ function RainSettingsConsole({
     setMessage(result.error ?? `RISK THRESHOLD ${result.data.highRiskThreshold.toUpperCase()}`);
   };
 
+  const readinessMap: Record<string, string> = {
+    WAIT: "等待检测",
+    READY: "完全就绪",
+    PARTIAL: "部分就绪",
+    FAILED: "就绪失败",
+  };
+
   return (
     <div className="rain-console-grid rain-settings-console">
       <aside className="rain-console-spine" aria-label="配置状态">
-        <p>CONTROL SPINE</p>
-        <HudMetric label="HOST" value={monitoredHost} />
-        <HudMetric label="MODE" value={sampleMode ? "SAMPLE" : sampleState(source, error)} />
-        <HudMetric label="TOKEN" value={hasToken ? "CONFIGURED" : "EMPTY"} />
-        <HudMetric label="PERMISSION" value={readiness} />
-        <HudMetric label="SYNC" value={`${refreshHours}H`} />
-        <HudMetric label="RAW" value={`${retentionDays}D`} />
+        <p>控制中心</p>
+        <HudMetric label="监控域名" value={monitoredHost} />
+        <HudMetric label="数据模式" value={sampleMode ? "样例数据" : (sampleState(source, error) === "LIVE" ? "实时连接" : "已降级")} />
+        <HudMetric label="令牌状态" value={hasToken ? "已配置" : "未配置"} />
+        <HudMetric label="权限就绪" value={readinessMap[readiness] || readiness} />
+        <HudMetric label="同步周期" value={`${refreshHours}小时`} />
+        <HudMetric label="数据保留" value={`${retentionDays}天`} />
       </aside>
 
       <section className="rain-console-main" aria-label="Cloudflare 配置">
         <div className="rain-console-topline">
-          <span>CLOUDFLARE / READ ONLY</span>
+          <span>CLOUDFLARE / 只读接入</span>
           <button type="button" onClick={syncNow} disabled={busy !== null}>
-            {busy === "sync" ? "SYNCING" : "SYNC NOW"}
+            {busy === "sync" ? "同步中..." : "立即同步"}
           </button>
         </div>
 
         <div className="rain-settings-fields">
-          <FieldLabel label="MONITORED HOST">
+          <FieldLabel label="监控域名 (HOST)">
             <input value={monitoredHost} onChange={(event) => setMonitoredHost(event.target.value)} />
           </FieldLabel>
-          <FieldLabel label="CLOUDFLARE ZONE ID">
+          <FieldLabel label="CLOUDFLARE 区域 ID (ZONE ID)">
             <input value={zoneId} placeholder="Zone ID" onChange={(event) => setZoneId(event.target.value)} />
           </FieldLabel>
-          <FieldLabel label="API TOKEN">
+          <FieldLabel label="API 令牌 (TOKEN)">
             <input
               value={token}
               type="password"
-              placeholder={hasToken ? "Token configured. Enter a new token to replace." : "Token is empty. Sample data is active."}
+              placeholder={hasToken ? "已配置令牌。输入新令牌以进行替换。" : "令牌为空。当前激活样例数据。"}
               onChange={(event) => setToken(event.target.value)}
             />
           </FieldLabel>
-          <FieldLabel label="REFRESH WINDOW">
+          <FieldLabel label="刷新频率 (小时)">
             <input min={1} max={24} type="number" value={refreshHours} onChange={(event) => setRefreshHours(Number(event.target.value))} />
           </FieldLabel>
-          <FieldLabel label="ALERT THRESHOLD">
+          <FieldLabel label="告警风险阈值">
             <select value={threshold} onChange={(event) => saveThreshold(event.target.value as RiskLevel)}>
               {(["info", "low", "medium", "high", "critical"] as RiskLevel[]).map((level) => (
                 <option key={level} value={level}>
-                  {riskText[level]}
+                  {riskOptionLabels[level] || riskText[level]}
                 </option>
               ))}
             </select>
           </FieldLabel>
-          <FieldLabel label="RAW RETENTION">
+          <FieldLabel label="原始事件保留 (天)">
             <input min={7} max={365} type="number" value={retentionDays} onChange={(event) => setRetentionDays(Number(event.target.value))} />
           </FieldLabel>
           <div className="rain-console-field">
-            <span>AGGREGATE</span>
-            <strong>{settings.aggregateRetention}</strong>
+            <span>聚合统计保留</span>
+            <strong>{settings.aggregateRetention === "180D" ? "180天" : settings.aggregateRetention}</strong>
           </div>
         </div>
 
         <div className="rain-console-pills">
           <button type="button" onClick={saveSettings} disabled={busy !== null}>
-            {busy === "save" ? "SAVING" : "SAVE CONFIG"}
+            {busy === "save" ? "保存中..." : "保存配置"}
           </button>
           <button type="button" onClick={checkToken} disabled={busy !== null}>
-            {busy === "check" ? "CHECKING" : "CHECK TOKEN"}
+            {busy === "check" ? "校验中..." : "校验令牌"}
           </button>
         </div>
 
         <div className="rain-template-block" aria-live="polite">
-          <span>OPERATION RESULT</span>
+          <span>操作结果</span>
           <p>{message}</p>
         </div>
       </section>
 
       <aside className="rain-console-detail" aria-label="权限与边界">
         <div className="rain-detail-heading">
-          <span>TOKEN READINESS</span>
-          <strong>{sampleMode ? "SAMPLE MODE" : readiness}</strong>
+          <span>令牌就绪度</span>
+          <strong>{sampleMode ? "样例数据模式" : (readinessMap[readiness] || readiness)}</strong>
         </div>
         <div className="rain-detail-summary">
           {sampleMode
