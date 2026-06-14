@@ -31,17 +31,16 @@ const railNavItems = [
     code: "TRACE-021",
     desc: "3D / 2D security situation",
     meta: "globe attack flow",
-    hud: ["GLOBE READY", "ATTACK FLOW", "SOURCE POINT", "TARGET CHENGDU", "2D MAP", "OPEN VISUAL"],
+    hud: ["准备就绪", "攻击流监测", "攻击源节点", "目标成都", "二维地图", "开启可视化"],
   },
   {
     href: "/security/events",
     label: "EVENTS",
     cn: "事件",
     effect: "scan",
-    code: "EVENT-064",
     desc: "filter, inspect and copy alert text",
     meta: "latest event stream",
-    hud: ["FILTER READY", "TIME RANGE", "RISK LEVEL", "EVENT DETAIL", "RAW JSON", "ALERT TEXT"],
+    hud: ["过滤就绪", "时间范围", "风险等级", "事件详情", "原始数据", "告警文本"],
   },
   {
     href: "/security/map",
@@ -51,17 +50,16 @@ const railNavItems = [
     code: "GEO-031",
     desc: "request distribution by region",
     meta: "source position layer",
-    hud: ["COUNTRY", "REGION", "CITY FALLBACK", "REQUEST FLOW", "DISTRIBUTION", "OPEN MAP"],
+    hud: ["国家", "地区", "城市", "请求流量", "分布图", "打开地图"],
   },
   {
     href: "/security/settings",
     label: "CONFIG",
     cn: "设置",
     effect: "tower",
-    code: "ZONE-018",
     desc: "Cloudflare token and sync policy",
     meta: "local security config",
-    hud: ["ZONE ID", "TOKEN CHECK", "SYNC CYCLE", "RISK LEVEL", "RETENTION", "SAVE CONFIG"],
+    hud: ["区域代码", "令牌检查", "同步周期", "风险等级", "保留时长", "保存配置"],
   },
   {
     href: "/security/events?risk=high",
@@ -71,7 +69,7 @@ const railNavItems = [
     code: "RISK-009",
     desc: "high risk events ready to notify",
     meta: "manual message draft",
-    hud: ["HIGH", "CRITICAL", "ACTION", "SOURCE IP", "MESSAGE", "COPY TEXT"],
+    hud: ["高风险", "紧急", "处置动作", "来源 IP", "告警信息", "复制文本"],
   },
   {
     href: "/security",
@@ -81,7 +79,7 @@ const railNavItems = [
     code: "SYNC-006",
     desc: "data source, freshness and fallback",
     meta: "overview status",
-    hud: ["LIVE/SAMPLE", "UPDATED", "FALLBACK", "HOST", "REQUESTS", "OVERVIEW"],
+    hud: ["实时/样例", "已更新", "回退模式", "主机地址", "请求数", "总览数据"],
   },
 ];
 

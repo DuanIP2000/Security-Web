@@ -30,18 +30,18 @@ export type EventInitialFilters = {
 
 type RainSecuritySubPageProps =
   | {
-      page: "events";
-      events: SecurityEvent[];
-      initialFilters?: EventInitialFilters;
-      source: "api" | "sample";
-      error?: string;
-    }
+    page: "events";
+    events: SecurityEvent[];
+    initialFilters?: EventInitialFilters;
+    source: "api" | "sample";
+    error?: string;
+  }
   | {
-      page: "settings";
-      settings: SecuritySettings;
-      source: "api" | "sample";
-      error?: string;
-    };
+    page: "settings";
+    settings: SecuritySettings;
+    source: "api" | "sample";
+    error?: string;
+  };
 
 type FilterState = {
   risk: "all" | RiskLevel;
@@ -79,7 +79,7 @@ const methodOptions = ["all", "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"];
 const pageCopy = {
   events: {
     eyebrow: "SECURITY / EVENT STREAM",
-    title: "Security Events",
+    title: "安全事件",
     subtitle: "按时间倒序查看请求、扫描、挑战与拦截记录，并生成高风险待发送文本。",
     active: "events" as const,
     index: "02",
@@ -590,17 +590,17 @@ export function RainSecuritySubPage(props: RainSecuritySubPageProps) {
 
   const stats: Array<[string, string]> = isEvents
     ? [
-        ["EVENTS", props.events.length.toString()],
-        ["HIGH+", props.events.filter((event) => riskRank[event.riskLevel] >= riskRank.high).length.toString()],
-        ["AREAS", new Set(props.events.map((event) => event.country).filter(Boolean)).size.toString()],
-        ["MODE", sampleState(props.source, props.error)],
-      ]
+      ["EVENTS", props.events.length.toString()],
+      ["HIGH+", props.events.filter((event) => riskRank[event.riskLevel] >= riskRank.high).length.toString()],
+      ["AREAS", new Set(props.events.map((event) => event.country).filter(Boolean)).size.toString()],
+      ["MODE", sampleState(props.source, props.error)],
+    ]
     : [
-        ["ZONE", props.settings.zoneId ? "READY" : "PENDING"],
-        ["TOKEN", props.settings.hasCloudflareToken ? "READY" : "EMPTY"],
-        ["SYNC", props.settings.sampleMode ? "SAMPLE" : "LIVE"],
-        ["RISK", riskText[props.settings.highRiskThreshold]],
-      ];
+      ["ZONE", props.settings.zoneId ? "READY" : "PENDING"],
+      ["TOKEN", props.settings.hasCloudflareToken ? "READY" : "EMPTY"],
+      ["SYNC", props.settings.sampleMode ? "SAMPLE" : "LIVE"],
+      ["RISK", riskText[props.settings.highRiskThreshold]],
+    ];
 
   return (
     <main className="rain-home rain-subpage rain-subpage-plain">

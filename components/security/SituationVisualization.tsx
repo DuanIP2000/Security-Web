@@ -70,7 +70,7 @@ export function SituationVisualization({
       <header className="situation-header">
         <div>
           <p>SECURITY SITUATION</p>
-          <h1>Threat Visual</h1>
+          <h1>攻击可视化</h1>
         </div>
       </header>
 
@@ -97,7 +97,7 @@ export function SituationVisualization({
 
       <aside className="situation-region-panel" aria-label="安全态势信息">
         <div className="situation-panel-section">
-          <p>TOP REGIONS</p>
+          <p>TOP 地区</p>
           {overview.countries.slice(0, 4).map((country, index) => (
             <div key={`${country.label}-${index}`} className="situation-region" data-risk={country.riskLevel ?? "info"}>
               <span>{String(index + 1).padStart(2, "0")}</span>
@@ -108,7 +108,7 @@ export function SituationVisualization({
         </div>
 
         <div className="situation-panel-section">
-          <p>ATTACK MIX</p>
+          <p>混合攻击</p>
           {overview.eventTypes
             .filter((item) => item.riskLevel !== "info")
             .slice(0, 4)
@@ -122,7 +122,7 @@ export function SituationVisualization({
         </div>
 
         <div className="situation-panel-section situation-stream-section">
-          <p>LIVE STREAM</p>
+          <p>历史记录</p>
           {overview.recentEvents.slice(0, 4).map((event) => (
             <div key={event.id} className="situation-event" data-risk={event.riskLevel}>
               <span>{formatEventTime(event.timestamp)}</span>
