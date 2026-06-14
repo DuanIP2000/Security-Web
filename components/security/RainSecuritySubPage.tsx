@@ -73,7 +73,25 @@ const riskText: Record<RiskLevel, string> = {
 };
 
 const riskOptions: Array<"all" | RiskLevel> = ["all", "info", "low", "medium", "high", "critical"];
+const riskOptionLabels: Record<string, string> = {
+  all: "全部等级",
+  info: "通知 / INFO",
+  low: "低风险 / LOW",
+  medium: "中风险 / WATCH",
+  high: "高风险 / HIGH",
+  critical: "严重 / CRITICAL",
+};
+
 const actionOptions = ["all", "allow", "block", "challenge", "managed_challenge", "log"];
+const actionOptionLabels: Record<string, string> = {
+  all: "全部动作",
+  allow: "放行 / ALLOW",
+  block: "阻断 / BLOCK",
+  challenge: "验证码 / CHALLENGE",
+  managed_challenge: "托管质询 / MANAGED",
+  log: "仅记录 / LOG",
+};
+
 const methodOptions = ["all", "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"];
 
 const pageCopy = {
@@ -260,34 +278,34 @@ function RainEventConsole({
   return (
     <div className="rain-console-grid rain-event-console">
       <aside className="rain-console-spine" aria-label="事件筛选">
-        <p>FILTER SYSTEM</p>
-        <HudMetric label="MATCHED" value={String(visibleEvents.length)} />
-        <HudMetric label="HIGH+" value={String(highCount)} />
-        <HudMetric label="CONTAINED" value={String(blockedCount)} />
-        <HudMetric label="MODE" value={sampleState(source, error)} />
+        <p>筛选系统</p>
+        <HudMetric label="匹配事件" value={String(visibleEvents.length)} />
+        <HudMetric label="高危及以上" value={String(highCount)} />
+        <HudMetric label="已拦截" value={String(blockedCount)} />
+        <HudMetric label="数据模式" value={sampleState(source, error)} />
 
-        <FieldLabel label="TIME WINDOW">
+        <FieldLabel label="时间窗口">
           <select value={filters.timeRange} onChange={(event) => updateFilter("timeRange", event.target.value as FilterState["timeRange"])}>
-            <option value="6h">6H</option>
-            <option value="24h">24H</option>
-            <option value="7d">7D</option>
-            <option value="all">ALL LOCAL</option>
+            <option value="6h">最近 6 小时</option>
+            <option value="24h">最近 24 小时</option>
+            <option value="7d">最近 7 天</option>
+            <option value="all">本地全部数据</option>
           </select>
         </FieldLabel>
 
-        <FieldLabel label="RISK LEVEL">
+        <FieldLabel label="风险等级">
           <select value={filters.risk} onChange={(event) => updateFilter("risk", event.target.value as FilterState["risk"])}>
             {riskOptions.map((risk) => (
               <option key={risk} value={risk}>
-                {risk.toUpperCase()}
+                {riskOptionLabels[risk]}
               </option>
             ))}
           </select>
         </FieldLabel>
 
-        <FieldLabel label="EVENT TYPE">
+        <FieldLabel label="事件类型">
           <select value={filters.eventType} onChange={(event) => updateFilter("eventType", event.target.value)}>
-            <option value="all">ALL TYPES</option>
+            <option value="all">全部类型</option>
             {eventTypes.map((eventType) => (
               <option key={eventType} value={eventType}>
                 {eventType}
@@ -296,41 +314,41 @@ function RainEventConsole({
           </select>
         </FieldLabel>
 
-        <FieldLabel label="SOURCE IP">
-          <input value={filters.ip} placeholder="185.220" onChange={(event) => updateFilter("ip", event.target.value)} />
+        <FieldLabel label="源 IP 地址">
+          <input value={filters.ip} placeholder="例如: 185.220" onChange={(event) => updateFilter("ip", event.target.value)} />
         </FieldLabel>
-        <FieldLabel label="COUNTRY / REGION">
-          <input value={filters.country} placeholder="Frankfurt / Germany" onChange={(event) => updateFilter("country", event.target.value)} />
+        <FieldLabel label="国家 / 地区">
+          <input value={filters.country} placeholder="例如: Frankfurt / Germany" onChange={(event) => updateFilter("country", event.target.value)} />
         </FieldLabel>
-        <FieldLabel label="PATH / QUERY">
-          <input value={filters.path} placeholder=".env / admin" onChange={(event) => updateFilter("path", event.target.value)} />
+        <FieldLabel label="请求路径 / 参数">
+          <input value={filters.path} placeholder="例如: .env / admin" onChange={(event) => updateFilter("path", event.target.value)} />
         </FieldLabel>
-        <FieldLabel label="USER AGENT">
-          <input value={filters.userAgent} placeholder="curl / scanner" onChange={(event) => updateFilter("userAgent", event.target.value)} />
+        <FieldLabel label="用户代理 (UA)">
+          <input value={filters.userAgent} placeholder="例如: curl / scanner" onChange={(event) => updateFilter("userAgent", event.target.value)} />
         </FieldLabel>
 
         <div className="rain-console-row-controls">
           <label>
-            <span>METHOD</span>
+            <span>请求方法</span>
             <select value={filters.method} onChange={(event) => updateFilter("method", event.target.value)}>
               {methodOptions.map((method) => (
                 <option key={method} value={method}>
-                  {method}
+                  {method === "all" ? "全部方法" : method}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            <span>STATUS</span>
+            <span>状态码</span>
             <input value={filters.statusCode} placeholder="403" onChange={(event) => updateFilter("statusCode", event.target.value.replace(/\D/g, "").slice(0, 3))} />
           </label>
         </div>
 
-        <FieldLabel label="CLOUDFLARE ACTION">
+        <FieldLabel label="处置动作 (ACTION)">
           <select value={filters.action} onChange={(event) => updateFilter("action", event.target.value)}>
             {actionOptions.map((action) => (
               <option key={action} value={action}>
-                {action.toUpperCase()}
+                {actionOptionLabels[action]}
               </option>
             ))}
           </select>
@@ -338,10 +356,10 @@ function RainEventConsole({
 
         <div className="rain-console-pills">
           <button type="button" onClick={applyFilters} data-active={isPending}>
-            {isPending ? "APPLYING" : "APPLY"}
+            {isPending ? "应用中..." : "应用筛选"}
           </button>
           <button type="button" onClick={clearFilters}>
-            RESET
+            重置
           </button>
         </div>
       </aside>
